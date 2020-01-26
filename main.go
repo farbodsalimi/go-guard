@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
 )
 
@@ -36,7 +37,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	resp.Body = body
 	resp.ContentLength = int64(len(b))
 	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
-	resp.Header.Add("server", "go-guard")
+	resp.Header.Add("Proxy", "go-guard")
 	log.Println(resp.Header)
 
 	return resp, nil
@@ -45,7 +46,9 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 var _ http.RoundTripper = &transport{}
 
 func main() {
-	target, err := url.Parse("http://localhost:3000")
+	t := os.Getenv("TARGET")
+
+	target, err := url.Parse(t)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -53,7 +56,9 @@ func main() {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Transport = &transport{http.DefaultTransport}
 
+	log.Println("GO GUARD running on http://0.0.0.0:8080")
 	if err := http.ListenAndServe(":8080", proxy); err != nil {
 		log.Panic(err)
 	}
+
 }
